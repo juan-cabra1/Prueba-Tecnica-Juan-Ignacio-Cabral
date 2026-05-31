@@ -4,7 +4,7 @@ Asistente automatizado que responde preguntas de soporte usando documentación t
 interna, vía RAG. FastAPI hace la ingesta + retrieval (parte ML); n8n orquesta y genera
 la respuesta con OpenAI. Todo levanta local con Docker.
 
-> Engineering spec → [`docs/DESIGN.md`](docs/DESIGN.md)
+> Engineering spec → [`DESIGN.md`](DESIGN.md)
 > Design decisions (for the interview) → [`SPEC.md`](SPEC.md)
 
 ## Reglas NO negociables
