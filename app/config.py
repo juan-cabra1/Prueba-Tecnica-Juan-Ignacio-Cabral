@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     top_k: int = 3
     threshold: float = 0.80
 
-    model_config = {"env_prefix": "RAG_", "env_file": ".env"}
+    model_config = {"env_prefix": "RAG_", "env_file": ".env", "extra": "ignore"}
 
 
 settings = Settings()

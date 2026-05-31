@@ -7,6 +7,8 @@ services:
       - "8000:8000"
     volumes:
       - chroma_data:/data/chroma
+    environment:
+      - RAG_DOCS_PATH=/app/docs
     env_file:
       - .env
     networks:
