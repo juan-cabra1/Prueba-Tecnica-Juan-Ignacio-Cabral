@@ -5,7 +5,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from app.domain.models import Registro
-from app.domain.ports import Embedder, Parser, VectorStore
+from app.domain.ports import Deduplicator, Embedder, Parser, VectorStore
 
 _SUPPORTED_EXTENSIONS = {".txt", ".md", ".json", ".pdf"}
 
@@ -41,7 +41,7 @@ class IngestUseCase:
         parsers: dict[str, Parser],
         embedder: Embedder,
         store: VectorStore,
-        dedup,
+        dedup: Deduplicator,
         docs_path: Path,
     ) -> None:
         self._parsers = parsers

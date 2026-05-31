@@ -105,3 +105,112 @@ class TestIngestEndpoint:
         r2 = client.post("/api/ingest")
         assert r1.json()["chunks"] == 12
         assert r2.json()["chunks"] == 12
+
+
+class TestRetrieveEndpoint:
+    """Tests for POST /api/retrieve."""
+
+    THRESHOLD = 0.80
+
+    def _make_registro(self, titulo: str = "test titulo", codigo: str | None = "ERR-001") -> Registro:
+        return Registro(
+            codigo=codigo,
+            titulo=titulo,
+            categoria="cat",
+            mensaje_usuario="mensaje",
+            causas=["causa 1"],
+            solucion=["paso 1"],
+            source_file="test.txt",
+        )
+
+    @pytest.fixture
+    def client_found(self):
+        """Client configured so /api/retrieve returns a found result."""
+        from app.application.retrieve import RetrieveResult, RetrieveUseCase, RetrievedResult
+        from app.interface.api import app, get_embedder, get_store
+
+        registro = self._make_registro()
+        chunk = RetrievedChunk(registro=registro, score=0.90)
+
+        fake_store = FakeVectorStore()
+        fake_store.query = MagicMock(return_value=[chunk])
+
+        fake_embedder = FakeEmbedder()
+
+        app.dependency_overrides[get_embedder] = lambda: fake_embedder
+        app.dependency_overrides[get_store] = lambda: fake_store
+
+        client = TestClient(app)
+        yield client
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client_not_found(self):
+        """Client configured so /api/retrieve returns a not-found result (score below threshold)."""
+        from app.interface.api import app, get_embedder, get_store
+
+        registro = self._make_registro()
+        chunk = RetrievedChunk(registro=registro, score=0.40)
+
+        fake_store = FakeVectorStore()
+        fake_store.query = MagicMock(return_value=[chunk])
+
+        fake_embedder = FakeEmbedder()
+
+        app.dependency_overrides[get_embedder] = lambda: fake_embedder
+        app.dependency_overrides[get_store] = lambda: fake_store
+
+        client = TestClient(app)
+        yield client
+        app.dependency_overrides.clear()
+
+    def test_retrieve_endpoint_found(self, client_found):
+        """Score >= threshold → 200 + found: true."""
+        response = client_found.post("/api/retrieve", json={"query": "error de conexion"})
+        assert response.status_code == 200
+        body = response.json()
+        assert body["found"] is True
+        assert len(body["results"]) == 1
+
+    def test_retrieve_endpoint_found_result_shape(self, client_found):
+        """Result items contain all required fields."""
+        response = client_found.post("/api/retrieve", json={"query": "error de conexion"})
+        item = response.json()["results"][0]
+        assert "codigo" in item
+        assert "titulo" in item
+        assert "context" in item
+        assert "score" in item
+        assert "source" in item
+
+    def test_retrieve_endpoint_not_found(self, client_not_found):
+        """Score below threshold → 200 + found: false."""
+        response = client_not_found.post("/api/retrieve", json={"query": "algo inexistente"})
+        assert response.status_code == 200
+        body = response.json()
+        assert body["found"] is False
+        assert body["results"] == []
+        assert body["message"] is not None
+
+    def test_retrieve_endpoint_empty_query(self):
+        """POST with empty query string → 422 validation error."""
+        from app.interface.api import app
+
+        client = TestClient(app)
+        response = client.post("/api/retrieve", json={"query": ""})
+        assert response.status_code == 422
+
+    def test_retrieve_endpoint_whitespace_query(self):
+        """POST with whitespace-only query → 422 validation error."""
+        from app.interface.api import app
+
+        client = TestClient(app)
+        response = client.post("/api/retrieve", json={"query": "   "})
+        assert response.status_code == 422
+
+    def test_retrieve_endpoint_missing_query_field(self):
+        """POST with empty body (missing query field) → 422 validation error."""
+        from app.interface.api import app
+
+        client = TestClient(app)
+        response = client.post("/api/retrieve", json={})
+        assert response.status_code == 422

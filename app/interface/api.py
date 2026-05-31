@@ -9,9 +9,10 @@ from pathlib import Path
 from fastapi import Depends, FastAPI
 
 from app.application.ingest import IngestResult, IngestUseCase
+from app.application.retrieve import RetrieveUseCase
 from app.config import Settings
 from app.domain.ports import Embedder, VectorStore
-from app.interface.schemas import IngestResponse
+from app.interface.schemas import IngestResponse, RetrieveRequest, RetrieveResponse, ResultItem
 
 app = FastAPI(title="RAG Support Assistant")
 
@@ -63,11 +64,46 @@ def get_ingest_uc(
 
 
 @app.post("/api/ingest", response_model=IngestResponse)
-def ingest(uc: IngestUseCase = Depends(get_ingest_uc)) -> IngestResponse:
+def ingest(use_case: IngestUseCase = Depends(get_ingest_uc)) -> IngestResponse:
     """Parse, deduplicate, embed, and index all documentation files."""
-    result: IngestResult = uc.execute()
+    result: IngestResult = use_case.execute()
     return IngestResponse(
         documentos=result.documentos,
         chunks=result.chunks,
         duplicados_removidos=result.duplicados_removidos,
+    )
+
+
+@app.post("/api/retrieve", response_model=RetrieveResponse)
+def retrieve(
+    request: RetrieveRequest,
+    embedder: Embedder = Depends(get_embedder),
+    store: VectorStore = Depends(get_store),
+    settings: Settings = Depends(get_settings),
+) -> RetrieveResponse:
+    """Retrieve relevant documentation chunks for a query.
+
+    Returns ``found: true`` with results when the top-1 similarity meets
+    the configured threshold, or ``found: false`` (abstention) otherwise.
+    """
+    use_case = RetrieveUseCase(
+        embedder=embedder,
+        store=store,
+        threshold=settings.threshold,
+        top_k=settings.top_k,
+    )
+    result = use_case.execute(request.query)
+    return RetrieveResponse(
+        found=result.found,
+        results=[
+            ResultItem(
+                codigo=item.codigo,
+                titulo=item.titulo,
+                context=item.context,
+                score=item.score,
+                source=item.source,
+            )
+            for item in result.results
+        ],
+        message=result.message,
     )

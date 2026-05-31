@@ -43,6 +43,17 @@ class VectorStore(Protocol):
     def count(self) -> int:
         """Return the total number of records currently stored."""
 
+    def reset(self) -> None:
+        """Drop all records and recreate the collection (idempotent re-index)."""
+
+
+@runtime_checkable
+class Deduplicator(Protocol):
+    """Contract for cross-source deduplication strategies."""
+
+    def deduplicate(self, registros: list[Registro]) -> tuple[list[Registro], int]:
+        """Return unique records and the count of duplicates removed."""
+
 
 @runtime_checkable
 class Parser(Protocol):

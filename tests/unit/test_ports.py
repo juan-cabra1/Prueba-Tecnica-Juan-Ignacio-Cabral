@@ -59,6 +59,9 @@ class TestVectorStoreProtocol:
             def count(self) -> int:
                 return 0
 
+            def reset(self) -> None:
+                pass
+
         assert isinstance(FakeVectorStore(), VectorStore)
 
     def test_non_compliant_class_fails_protocol(self):

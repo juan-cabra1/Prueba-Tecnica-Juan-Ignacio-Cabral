@@ -136,3 +136,143 @@ class TestIngestUseCase:
         result2 = uc.execute()
         assert result1.chunks == 12
         assert result2.chunks == 12
+
+
+class TestRetrieveUseCase:
+    """Tests for RetrieveUseCase with faked dependencies."""
+
+    THRESHOLD = 0.80
+    TOP_K = 3
+
+    def _make_registro(self, titulo: str = "test", codigo: str | None = "TST-001") -> Registro:
+        return Registro(
+            codigo=codigo,
+            titulo=titulo,
+            categoria="cat",
+            mensaje_usuario="msg",
+            causas=["c1"],
+            solucion=["s1"],
+            source_file="test.txt",
+        )
+
+    def _make_use_case(self, embedder=None, store=None):
+        from app.application.retrieve import RetrieveUseCase
+
+        return RetrieveUseCase(
+            embedder=embedder or FakeEmbedder(),
+            store=store or FakeVectorStore(),
+            threshold=self.THRESHOLD,
+            top_k=self.TOP_K,
+        )
+
+    def test_retrieve_found(self):
+        """Store returns chunks with score >= threshold → found: True, results populated."""
+        from app.application.retrieve import RetrieveUseCase
+
+        registro = self._make_registro()
+        chunk = RetrievedChunk(registro=registro, score=0.90)
+
+        store = FakeVectorStore()
+        store.query = MagicMock(return_value=[chunk])
+
+        uc = RetrieveUseCase(
+            embedder=FakeEmbedder(),
+            store=store,
+            threshold=self.THRESHOLD,
+            top_k=self.TOP_K,
+        )
+        result = uc.execute("some query")
+
+        assert result.found is True
+        assert len(result.results) == 1
+        assert result.results[0].score == 0.90
+        assert result.results[0].titulo == "test"
+        assert result.message is None
+
+    def test_retrieve_not_found_low_score(self):
+        """Top chunk score < threshold → found: False, empty results, message set."""
+        from app.application.retrieve import RetrieveUseCase
+
+        registro = self._make_registro()
+        chunk = RetrievedChunk(registro=registro, score=0.50)
+
+        store = FakeVectorStore()
+        store.query = MagicMock(return_value=[chunk])
+
+        uc = RetrieveUseCase(
+            embedder=FakeEmbedder(),
+            store=store,
+            threshold=self.THRESHOLD,
+            top_k=self.TOP_K,
+        )
+        result = uc.execute("some query")
+
+        assert result.found is False
+        assert result.results == []
+        assert result.message is not None
+        assert len(result.message) > 0
+
+    def test_retrieve_not_found_empty_store(self):
+        """Store returns no chunks → found: False."""
+        from app.application.retrieve import RetrieveUseCase
+
+        store = FakeVectorStore()
+        store.query = MagicMock(return_value=[])
+
+        uc = RetrieveUseCase(
+            embedder=FakeEmbedder(),
+            store=store,
+            threshold=self.THRESHOLD,
+            top_k=self.TOP_K,
+        )
+        result = uc.execute("some query")
+
+        assert result.found is False
+        assert result.results == []
+
+    def test_retrieve_uses_embed_query_not_embed_documents(self):
+        """Verify embedder.embed_query is called (not embed_documents)."""
+        from app.application.retrieve import RetrieveUseCase
+
+        embedder = FakeEmbedder()
+        embedder.embed_query = MagicMock(return_value=[0.0] * 4)
+        embedder.embed_documents = MagicMock(return_value=[[0.0] * 4])
+
+        store = FakeVectorStore()
+        store.query = MagicMock(return_value=[])
+
+        uc = RetrieveUseCase(
+            embedder=embedder,
+            store=store,
+            threshold=self.THRESHOLD,
+            top_k=self.TOP_K,
+        )
+        uc.execute("hello")
+
+        embedder.embed_query.assert_called_once_with("hello")
+        embedder.embed_documents.assert_not_called()
+
+    def test_retrieve_result_has_correct_fields(self):
+        """Retrieved result contains all required fields."""
+        from app.application.retrieve import RetrieveUseCase
+
+        registro = self._make_registro(codigo="ERR-001")
+        chunk = RetrievedChunk(registro=registro, score=0.95)
+
+        store = FakeVectorStore()
+        store.query = MagicMock(return_value=[chunk])
+
+        uc = RetrieveUseCase(
+            embedder=FakeEmbedder(),
+            store=store,
+            threshold=self.THRESHOLD,
+            top_k=self.TOP_K,
+        )
+        result = uc.execute("any query")
+
+        item = result.results[0]
+        assert item.codigo == "ERR-001"
+        assert item.titulo == "test"
+        assert item.score == 0.95
+        assert item.source == "test.txt"
+        assert len(item.context) > 0
