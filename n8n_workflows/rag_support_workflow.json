@@ -257,7 +257,7 @@
             { "id": "e1", "name": "answer", "value": "Lo siento, ocurrió un error procesando tu consulta. Por favor intentá de nuevo.", "type": "string" },
             { "id": "e2", "name": "found", "value": false, "type": "boolean" },
             { "id": "e3", "name": "error", "value": true, "type": "boolean" },
-            { "id": "e4", "name": "statusCode", "value": "={{ /timeout|ETIMEDOUT|ECONNABORTED/i.test(JSON.stringify($json.error || '')) ? 504 : 502 }}", "type": "string" }
+            { "id": "e4", "name": "statusCode", "value": "={{ /timeout|ETIMEDOUT|ECONNABORTED/i.test(JSON.stringify($json.error || '')) ? 504 : 502 }}", "type": "number" }
           ]
         },
         "options": {}
