@@ -1,14 +1,14 @@
 {
   "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "name": "RAG Support Assistant",
-  "versionId": "1",
+  "versionId": "3",
   "nodes": [
     {
       "id": "node-webhook-01",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [0, 300],
       "webhookId": "rag-support",
       "parameters": {
         "httpMethod": "POST",
@@ -18,11 +18,33 @@
       }
     },
     {
+      "id": "node-empty-query-01",
+      "name": "Empty Query?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "cond-empty",
+              "leftValue": "={{ !$json.body.query || $json.body.query.toString().trim() === '' }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      }
+    },
+    {
       "id": "node-http-retrieve-01",
       "name": "HTTP Request",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 300],
+      "position": [440, 180],
       "parameters": {
         "method": "POST",
         "url": "http://api:8000/api/retrieve",
@@ -36,9 +58,7 @@
             }
           ]
         },
-        "options": {
-          "timeout": 30000
-        }
+        "options": { "timeout": 30000 }
       }
     },
     {
@@ -46,23 +66,16 @@
       "name": "Found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [680, 300],
+      "position": [660, 180],
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
           "conditions": [
             {
               "id": "cond-found",
               "leftValue": "={{ $json.found }}",
               "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
+              "operator": { "type": "boolean", "operation": "equals" }
             }
           ],
           "combinator": "and"
@@ -71,24 +84,80 @@
       }
     },
     {
+      "id": "node-switch-llm-01",
+      "name": "LLM Provider",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [880, 60],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "cond-anthropic",
+              "leftValue": "={{ $env.LLM_PROVIDER || 'openai' }}",
+              "rightValue": "anthropic",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-anthropic-01",
+      "name": "Anthropic",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [1100, -60],
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-haiku-4-5-20251001"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=CONTEXTO RECUPERADO:\n{{ $('HTTP Request').item.json.results.map(r => r.context).join('\\n\\n---\\n\\n') }}\n\nPREGUNTA: {{ $('Webhook').item.json.body.query }}"
+            }
+          ]
+        },
+        "options": {
+          "system": "Sos el agente de soporte técnico de UNILINK. Tu única fuente de verdad es el contexto que se te provee a continuación. REGLAS ESTRICTAS: 1. Respondé SOLO con información del contexto. Nunca inventes pasos, causas ni soluciones. 2. Si el contexto contiene el código de error (ej: ERR-DB-001), citalo explícitamente en tu respuesta. 3. Si la información para responder la pregunta NO está en el contexto, respondé única y exactamente esta frase, sin agregar nada más: \"No encontré información sobre eso en la documentación de UNILINK.\" 4. Respondé en el mismo idioma en que está escrita la pregunta del usuario. 5. Usá texto plano. Sin markdown, sin asteriscos, sin #, sin guiones como decoración. La respuesta debe poder leerse en cualquier interfaz. 6. Estructura fija cuando el contexto lo permita: Código de error: [código si existe] Descripción: [qué es el error en una línea] Causas: [lista numerada] Pasos de resolución: [lista numerada]"
+        }
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "anthropic-credentials",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
       "id": "node-openai-01",
       "name": "OpenAI",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
-      "position": [900, 180],
+      "position": [1100, 120],
       "parameters": {
         "resource": "chat",
         "operation": "complete",
-        "modelId": "gpt-4o-mini",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
         "messages": {
           "values": [
             {
               "role": "system",
-              "content": "Sos un asistente de soporte técnico de MineCatalog. Respondé ÚNICAMENTE usando el contexto provisto. Citá el código de error (ej: ERR-DB-001) cuando esté disponible. Si la respuesta no está en el contexto, decilo explícitamente.\n\nContexto:\n={{ $('HTTP Request').item.json.results.map(r => r.context).join('\\n\\n') }}"
+              "content": "Sos el agente de soporte técnico de UNILINK. Tu única fuente de verdad es el contexto que se te provee a continuación. REGLAS ESTRICTAS: 1. Respondé SOLO con información del contexto. Nunca inventes pasos, causas ni soluciones. 2. Si el contexto contiene el código de error (ej: ERR-DB-001), citalo explícitamente en tu respuesta. 3. Si la información para responder la pregunta NO está en el contexto, respondé única y exactamente esta frase, sin agregar nada más: \"No encontré información sobre eso en la documentación de UNILINK.\" 4. Respondé en el mismo idioma en que está escrita la pregunta del usuario. 5. Usá texto plano. Sin markdown, sin asteriscos, sin #, sin guiones como decoración. La respuesta debe poder leerse en cualquier interfaz. 6. Estructura fija cuando el contexto lo permita: Código de error: [código si existe] Descripción: [qué es el error en una línea] Causas: [lista numerada] Pasos de resolución: [lista numerada]"
             },
             {
               "role": "user",
-              "content": "={{ $('Webhook').item.json.body.query }}"
+              "content": "=CONTEXTO RECUPERADO:\n{{ $('HTTP Request').item.json.results.map(r => r.context).join('\\n\\n---\\n\\n') }}\n\nPREGUNTA: {{ $('Webhook').item.json.body.query }}"
             }
           ]
         },
@@ -104,44 +173,107 @@
       }
     },
     {
-      "id": "node-respond-found-01",
-      "name": "Respond Found",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1120, 180],
+      "id": "node-set-found-anthropic-01",
+      "name": "Set Found Anthropic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1320, -60],
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ answer: $json.message.content, found: true }) }}",
-        "options": {
-          "responseCode": 200
-        }
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "answer", "value": "={{ $json.content[0].text }}", "type": "string" },
+            { "id": "a2", "name": "found", "value": true, "type": "boolean" },
+            { "id": "a3", "name": "statusCode", "value": 200, "type": "number" }
+          ]
+        },
+        "options": {}
       }
     },
     {
-      "id": "node-respond-not-found-01",
-      "name": "Respond Not Found",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [900, 420],
+      "id": "node-set-found-openai-01",
+      "name": "Set Found OpenAI",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1320, 120],
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ answer: $('HTTP Request').item.json.message, found: false }) }}",
-        "options": {
-          "responseCode": 200
-        }
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "b1", "name": "answer", "value": "={{ $json.message.content }}", "type": "string" },
+            { "id": "b2", "name": "found", "value": true, "type": "boolean" },
+            { "id": "b3", "name": "statusCode", "value": 200, "type": "number" }
+          ]
+        },
+        "options": {}
       }
     },
     {
-      "id": "node-respond-error-01",
-      "name": "Respond Error",
+      "id": "node-set-not-found-01",
+      "name": "Set Not Found",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [880, 240],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "c1", "name": "answer", "value": "No encontré información sobre eso en la documentación de UNILINK.", "type": "string" },
+            { "id": "c2", "name": "found", "value": false, "type": "boolean" },
+            { "id": "c3", "name": "statusCode", "value": 404, "type": "number" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-set-empty-01",
+      "name": "Set Empty",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [440, 480],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "d1", "name": "answer", "value": "Query vacía. Por favor ingresá tu consulta para poder ayudarte.", "type": "string" },
+            { "id": "d2", "name": "found", "value": false, "type": "boolean" },
+            { "id": "d3", "name": "statusCode", "value": 400, "type": "number" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-set-error-01",
+      "name": "Set Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [880, 420],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "e1", "name": "answer", "value": "Lo siento, ocurrió un error procesando tu consulta. Por favor intentá de nuevo.", "type": "string" },
+            { "id": "e2", "name": "found", "value": false, "type": "boolean" },
+            { "id": "e3", "name": "error", "value": true, "type": "boolean" },
+            { "id": "e4", "name": "statusCode", "value": "={{ /timeout|ETIMEDOUT|ECONNABORTED/i.test(JSON.stringify($json.error || '')) ? 504 : 502 }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-respond-01",
+      "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [680, 540],
+      "position": [1540, 240],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={ \"answer\": \"Lo siento, ocurrió un error procesando tu consulta. Por favor intentá de nuevo.\", \"found\": false, \"error\": true }",
+        "responseBody": "={{ JSON.stringify({ answer: $json.answer, found: $json.found, ...(($json.error === true) ? { error: true } : {}) }) }}",
         "options": {
-          "responseCode": 500
+          "responseCode": "={{ $json.statusCode }}"
         }
       }
     }
@@ -149,71 +281,74 @@
   "connections": {
     "Webhook": {
       "main": [
-        [
-          {
-            "node": "HTTP Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Empty Query?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Empty Query?": {
+      "main": [
+        [{ "node": "Set Empty", "type": "main", "index": 0 }],
+        [{ "node": "HTTP Request", "type": "main", "index": 0 }]
       ]
     },
     "HTTP Request": {
       "main": [
-        [
-          {
-            "node": "Found?",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Found?", "type": "main", "index": 0 }]
       ],
       "error": [
-        [
-          {
-            "node": "Respond Error",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Set Error", "type": "main", "index": 0 }]
       ]
     },
     "Found?": {
       "main": [
-        [
-          {
-            "node": "OpenAI",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Respond Not Found",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "LLM Provider", "type": "main", "index": 0 }],
+        [{ "node": "Set Not Found", "type": "main", "index": 0 }]
+      ]
+    },
+    "LLM Provider": {
+      "main": [
+        [{ "node": "Anthropic", "type": "main", "index": 0 }],
+        [{ "node": "OpenAI", "type": "main", "index": 0 }]
+      ]
+    },
+    "Anthropic": {
+      "main": [
+        [{ "node": "Set Found Anthropic", "type": "main", "index": 0 }]
+      ],
+      "error": [
+        [{ "node": "Set Error", "type": "main", "index": 0 }]
       ]
     },
     "OpenAI": {
       "main": [
-        [
-          {
-            "node": "Respond Found",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Set Found OpenAI", "type": "main", "index": 0 }]
       ],
       "error": [
-        [
-          {
-            "node": "Respond Error",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Set Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Set Found Anthropic": {
+      "main": [
+        [{ "node": "Respond", "type": "main", "index": 0 }]
+      ]
+    },
+    "Set Found OpenAI": {
+      "main": [
+        [{ "node": "Respond", "type": "main", "index": 0 }]
+      ]
+    },
+    "Set Not Found": {
+      "main": [
+        [{ "node": "Respond", "type": "main", "index": 0 }]
+      ]
+    },
+    "Set Empty": {
+      "main": [
+        [{ "node": "Respond", "type": "main", "index": 0 }]
+      ]
+    },
+    "Set Error": {
+      "main": [
+        [{ "node": "Respond", "type": "main", "index": 0 }]
       ]
     }
   },
@@ -226,6 +361,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 0,
-  "updatedAt": "2026-05-31T00:00:00.000Z",
+  "updatedAt": "2026-06-02T00:00:00.000Z",
   "createdAt": "2026-05-31T00:00:00.000Z"
 }

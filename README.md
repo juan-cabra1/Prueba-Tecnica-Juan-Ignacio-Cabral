@@ -1,6 +1,6 @@
 # Prueba Técnica – Juan Ignacio Cabral
 
-Asistente RAG de soporte técnico para MineCatalog.
+Asistente RAG de soporte técnico para UNILINK.
 
 ## Requisitos
 
@@ -11,7 +11,7 @@ Asistente RAG de soporte técnico para MineCatalog.
 
 ```bash
 cp .env.example .env
-# Completar OPENAI_API_KEY en .env
+# Completar OPENAI_API_KEY (o ANTHROPIC_API_KEY si usás LLM_PROVIDER=anthropic)
 docker compose up --build
 ```
 
@@ -46,6 +46,26 @@ curl -X POST http://localhost:8000/api/retrieve \
   -H "Content-Type: application/json" \
   -d '{"query": "No puedo conectar a la base de datos"}'
 ```
+
+## Variables de entorno
+
+| Variable | Default | Descripción |
+|---|---|---|
+| `LLM_PROVIDER` | `openai` | Proveedor LLM del workflow n8n (`openai` o `anthropic`) |
+| `OPENAI_API_KEY` | — | Requerido si `LLM_PROVIDER=openai` |
+| `ANTHROPIC_API_KEY` | — | Requerido si `LLM_PROVIDER=anthropic` |
+| `RAG_THRESHOLD` | `0.80` | Umbral de similitud coseno para abstención |
+| `RAG_TOP_K` | `3` | Top-K resultados a recuperar |
+
+## HTTP status codes del webhook
+
+| Resultado | Código |
+|---|---|
+| Respuesta grounded encontrada | `200` |
+| No hay información (abstención) | `404` |
+| Query vacía o inválida | `400` |
+| Error del LLM o de la API de retrieval | `502` |
+| Timeout | `504` |
 
 ## Tests
 

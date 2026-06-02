@@ -162,9 +162,13 @@ Response schema:
 **Trigger**: HTTP Webhook — receives `{ "question": "string" }`.
 
 **Flow**:
-1. Call `POST /api/retrieve { "query": question }`.
-2. If `found: false` → return abstention message directly. Do not call OpenAI.
-3. If `found: true`:
+1. Validate query (empty → HTTP 400 immediately, no retrieve call).
+2. Call `POST /api/retrieve { "query": question }`.
+3. If `found: false` → return abstention message (HTTP 404). Do not call the LLM.
+4. If `found: true` (HTTP 200):
+   - Route to the configured LLM provider via `LLM_PROVIDER` env var (default: `openai`).
+     - `openai`: `n8n-nodes-base.openAi`, model `gpt-4o-mini` (satisfies brief requirement).
+     - `anthropic`: `@n8n/n8n-nodes-langchain.anthropic`, model `claude-haiku-4-5-20251001`.
    - Build grounded prompt:
      ```
      System: Answer ONLY from the provided context. Cite the error code (e.g. ERR-DB-001)
@@ -172,11 +176,18 @@ Response schema:
      Context: {formatted results from /retrieve}
      User: {question}
      ```
-   - Call OpenAI (configured timeout + error branch).
-   - Return the response.
+   - Call LLM (configured timeout + error branch).
+   - Return the response with `{answer, found: true}`.
+
+**HTTP status codes**:
+- `200` — answer found and generated.
+- `404` — abstention (no relevant document above threshold). No LLM call.
+- `400` — empty or missing query.
+- `502` — LLM or retrieve API error.
+- `504` — timeout.
 
 **Error handling in n8n**:
-- OpenAI node: configure timeout + dedicated error branch.
+- LLM node: configure timeout + dedicated error branch → HTTP 502/504.
 - Error branch returns a controlled message (never a raw exception).
 
 **Export**: workflow saved to `/n8n_workflows/` as JSON.

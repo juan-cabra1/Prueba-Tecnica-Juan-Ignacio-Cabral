@@ -20,8 +20,12 @@ services:
       - "5678:5678"
     volumes:
       - n8n_data:/home/node/.n8n
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
     env_file:
       - .env
+    depends_on:
+      - api
     networks:
       - rag_net
 

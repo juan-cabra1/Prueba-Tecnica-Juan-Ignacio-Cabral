@@ -2,7 +2,7 @@
 
 Asistente automatizado que responde preguntas de soporte usando documentación técnica
 interna, vía RAG. FastAPI hace la ingesta + retrieval (parte ML); n8n orquesta y genera
-la respuesta con OpenAI. Todo levanta local con Docker.
+la respuesta con LLM configurable (OpenAI por defecto, Anthropic opt-in). Todo levanta local con Docker.
 
 > Engineering spec → [`DESIGN.md`](DESIGN.md)
 > Design decisions (for the interview) → [`SPEC.md`](SPEC.md)
@@ -23,7 +23,7 @@ la respuesta con OpenAI. Todo levanta local con Docker.
 - **sentence-transformers** `intfloat/multilingual-e5-small` — embeddings locales, sin costo
 - **ChromaDB** — vector store persistente, métrica coseno, embeddings normalizados
 - **Pandas** — normalización y dedup antes de indexar
-- **n8n** — orquestación + llamada a OpenAI (fuera de la API)
+- **n8n** — orquestación + llamada a LLM configurable: OpenAI gpt-4o-mini (default, cumple brief) o Anthropic Claude Haiku (opt-in vía `LLM_PROVIDER`)
 - **Docker + docker compose** — FastAPI + n8n en un solo stack
 - **pytest** — unit tests + harness de evaluación
 

@@ -23,6 +23,15 @@ Documento de referencia. El CLAUDE.md tiene el "qué hacer"; este tiene el "por 
 4. Manejo de errores.
 
 ## 3. Decisiones y por qué (para defender)
+- **Proveedor LLM configurable (default OpenAI).** El brief exige OpenAI API; se cumple
+  con el flag `LLM_PROVIDER=openai` (default). Anthropic Claude Haiku queda disponible
+  como alternativa opt-in (`LLM_PROVIDER=anthropic`) — útil en contextos sin cuota de
+  OpenAI. Ambas ramas usan el mismo system prompt y producen la misma forma de respuesta
+  `{answer, found}`. La inteligencia de retrieval (e5 + Chroma) es independiente del proveedor.
+- **Status codes REST diferenciados.** El webhook devuelve 200 / 404 / 400 / 502 / 504 según
+  el resultado. Un 200 siempre, independientemente del outcome, es información perdida para
+  el consumidor. El 404 en abstención es deliberado: la pregunta fue válida, el recurso
+  no existe en la base de conocimiento.
 - **Embeddings locales (e5-small) en vez de OpenAI.** Retrieval offline, sin costo y en
   español; OpenAI queda solo para la generación. Muestra criterio ML (elección de modelo,
   multilingüe) y robustece el "levantar local".
@@ -57,8 +66,11 @@ importa es el ranking relativo y la separación entre grupos.
 - "La abstención se decide en FastAPI con scores; n8n solo orquesta. La inteligencia del
   retrieval vive en Python, testeable."
 - "No metí hybrid ni rerank porque el corpus no lo justifica; los tengo medidos como next step."
-- **Demo de cierre:** mostrar una pregunta out-of-scope (p. ej. "error 502") y que el sistema
-  responde "no encuentro esa información" sin siquiera llamar al LLM.
+- **Demo de cierre (status codes):** mostrar una pregunta out-of-scope (p. ej. "error 502")
+  y que el sistema responde con HTTP 404, `found:false`, sin llamar al LLM. Contrastar con
+  una pregunta in-scope que retorna HTTP 200 con respuesta grounded.
+- "El proveedor LLM es configurable: cumplo con OpenAI por defecto (requisito del brief)
+  pero la arquitectura no lo accopla — con una variable de entorno se puede cambiar a Anthropic."
 
 ## 6. Next steps (si preguntan "¿cómo lo escalarías?")
 - **Hybrid search** (denso + BM25) para matches de término/código exacto, donde el denso
