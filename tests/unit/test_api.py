@@ -214,3 +214,55 @@ class TestRetrieveEndpoint:
         client = TestClient(app)
         response = client.post("/api/retrieve", json={})
         assert response.status_code == 422
+
+
+class TestUIRoute:
+    """Tests for GET / — mini UI entry point."""
+
+    @pytest.fixture
+    def client(self):
+        from app.interface.api import app
+
+        return TestClient(app)
+
+    def test_root_serves_ui(self, client):
+        """GET / returns 200 with HTML content containing the app title and form elements."""
+        response = client.get("/")
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+        assert "RAG Support Assistant" in response.text
+        assert 'id="query-input"' in response.text
+        assert 'id="submit-btn"' in response.text
+
+    def test_existing_api_unaffected(self, client):
+        """POST /api/ingest still returns 200 after GET / is registered."""
+        from app.application.ingest import IngestUseCase
+        from app.infrastructure.dedup.pandas_dedup import PandasDeduplicator
+        from app.infrastructure.parsers.json import JsonParser
+        from app.infrastructure.parsers.md import MdParser
+        from app.infrastructure.parsers.pdf import PdfParser
+        from app.infrastructure.parsers.txt import TxtParser
+        from app.interface.api import app, get_ingest_uc
+
+        fake_embedder = FakeEmbedder()
+        fake_store = FakeVectorStore()
+
+        def fake_ingest_uc():
+            parsers = {
+                ".txt": TxtParser(),
+                ".md": MdParser(),
+                ".json": JsonParser(),
+                ".pdf": PdfParser(),
+            }
+            return IngestUseCase(
+                parsers=parsers,
+                embedder=fake_embedder,
+                store=fake_store,
+                dedup=PandasDeduplicator(),
+                docs_path=FIXTURES,
+            )
+
+        app.dependency_overrides[get_ingest_uc] = fake_ingest_uc
+        response = client.post("/api/ingest")
+        app.dependency_overrides.clear()
+        assert response.status_code == 200

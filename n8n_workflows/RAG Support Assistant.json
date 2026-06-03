@@ -6,7 +6,9 @@
         "httpMethod": "POST",
         "path": "rag-support",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
       "id": "d8902ba1-3e7a-49b5-8367-e1db9d00201e",
       "name": "Webhook",

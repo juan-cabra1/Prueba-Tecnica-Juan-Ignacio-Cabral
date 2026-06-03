@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Support Assistant</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: -0.025em;
+    }
+
+    header p {
+      margin-top: 0.5rem;
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: #1e2130;
+      border: 1px solid #2d3150;
+      border-radius: 12px;
+      padding: 1.75rem;
+      width: 100%;
+      max-width: 760px;
+      margin-bottom: 1.5rem;
+    }
+
+    .card h2 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #64748b;
+      margin-bottom: 1rem;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    #query-input {
+      flex: 1;
+      background: #0f1117;
+      border: 1px solid #2d3150;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 1rem;
+      padding: 0.65rem 1rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    #query-input:focus {
+      border-color: #4f7fff;
+    }
+
+    #query-input::placeholder {
+      color: #475569;
+    }
+
+    #submit-btn {
+      background: #4f7fff;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0.65rem 1.4rem;
+      transition: background 0.15s, opacity 0.15s;
+      white-space: nowrap;
+    }
+
+    #submit-btn:hover:not(:disabled) {
+      background: #3b6ef0;
+    }
+
+    #submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .metric {
+      background: #0f1117;
+      border: 1px solid #2d3150;
+      border-radius: 8px;
+      padding: 0.9rem 1rem;
+    }
+
+    .metric .label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      margin-bottom: 0.35rem;
+    }
+
+    .metric .value {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      word-break: break-word;
+    }
+
+    .badge {
+      display: inline-block;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+    }
+
+    .badge-true  { background: #14532d; color: #4ade80; }
+    .badge-false { background: #450a0a; color: #f87171; }
+    .badge-info  { background: #1e3a5f; color: #60a5fa; }
+
+    #answer-text {
+      font-size: 1rem;
+      line-height: 1.65;
+      color: #cbd5e1;
+      white-space: pre-wrap;
+    }
+
+    pre#raw-json {
+      background: #0a0d14;
+      border: 1px solid #1e2540;
+      border-radius: 8px;
+      color: #7dd3fc;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      overflow-x: auto;
+      padding: 1rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .error-box {
+      background: #450a0a;
+      border: 1px solid #7f1d1d;
+      border-radius: 8px;
+      color: #fca5a5;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      padding: 1rem 1.25rem;
+    }
+
+    .hidden { display: none; }
+
+    .status-note {
+      color: #475569;
+      font-size: 0.78rem;
+      margin-top: 0.4rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>RAG Support Assistant</h1>
+    <p>Consultá la documentacion tecnica interna</p>
+  </header>
+
+  <!-- Query form -->
+  <div class="card">
+    <h2>Consulta</h2>
+    <div class="input-row">
+      <input
+        id="query-input"
+        type="text"
+        placeholder="Ej: No puedo conectar a la base de datos"
+        autocomplete="off"
+      />
+      <button id="submit-btn" type="button">Enviar</button>
+    </div>
+  </div>
+
+  <!-- Error box (hidden until needed) -->
+  <div class="card hidden" id="error-card">
+    <h2>Error</h2>
+    <div class="error-box" id="error-msg"></div>
+  </div>
+
+  <!-- Result area (hidden until a response arrives) -->
+  <div class="card hidden" id="result-card">
+    <h2>Resultado</h2>
+
+    <div class="result-grid">
+      <div class="metric">
+        <div class="label">found</div>
+        <div class="value" id="found-badge"></div>
+      </div>
+      <div class="metric">
+        <div class="label">statusCode <span class="status-note">(logico — n8n siempre devuelve HTTP 200)</span></div>
+        <div class="value" id="status-code-badge"></div>
+      </div>
+    </div>
+
+    <div class="metric" style="margin-bottom:1.25rem;">
+      <div class="label">answer</div>
+      <div id="answer-text"></div>
+    </div>
+
+    <div>
+      <div class="label" style="margin-bottom:0.5rem;">Raw JSON</div>
+      <pre id="raw-json"></pre>
+    </div>
+  </div>
+
+  <script>
+    const queryInput = document.getElementById('query-input');
+    const submitBtn  = document.getElementById('submit-btn');
+    const errorCard  = document.getElementById('error-card');
+    const errorMsg   = document.getElementById('error-msg');
+    const resultCard = document.getElementById('result-card');
+    const foundBadge = document.getElementById('found-badge');
+    const statusBadge = document.getElementById('status-code-badge');
+    const answerText  = document.getElementById('answer-text');
+    const rawJson     = document.getElementById('raw-json');
+
+    const N8N_WEBHOOK = 'http://localhost:5678/webhook/rag-support';
+
+    function setLoading(active) {
+      submitBtn.disabled = active;
+      submitBtn.textContent = active ? 'Enviando...' : 'Enviar';
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorCard.classList.remove('hidden');
+      resultCard.classList.add('hidden');
+    }
+
+    function showResult(data) {
+      errorCard.classList.add('hidden');
+      resultCard.classList.remove('hidden');
+
+      const found = data.found;
+      foundBadge.innerHTML =
+        `<span class="badge ${found ? 'badge-true' : 'badge-false'}">${found}</span>`;
+
+      const sc = data.statusCode ?? '—';
+      statusBadge.innerHTML =
+        `<span class="badge badge-info">${sc}</span>`;
+
+      answerText.textContent = data.answer ?? '(sin respuesta)';
+      rawJson.textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function handleSubmit() {
+      const query = queryInput.value.trim();
+
+      if (!query) {
+        queryInput.focus();
+        return;
+      }
+
+      setLoading(true);
+      errorCard.classList.add('hidden');
+      resultCard.classList.add('hidden');
+
+      try {
+        const res = await fetch(N8N_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query }),
+        });
+
+        const data = await res.json();
+        showResult(data);
+      } catch (err) {
+        showError(
+          'No se pudo conectar con el webhook de n8n.\n\n' +
+          'Verificá que:\n' +
+          '  1. El stack esta levantado (docker compose up).\n' +
+          '  2. El workflow "RAG Support Assistant" esta Active en n8n (paso 7 del README).\n' +
+          '  3. Las credenciales del LLM estan cargadas en n8n (paso 4 del README).\n\n' +
+          'Error tecnico: ' + (err.message || err)
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    submitBtn.addEventListener('click', handleSubmit);
+
+    queryInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSubmit();
+    });
+  </script>
+</body>
+</html>

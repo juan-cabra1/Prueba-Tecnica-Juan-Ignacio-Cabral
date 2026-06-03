@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.application.ingest import IngestResult, IngestUseCase
 from app.application.retrieve import RetrieveUseCase
@@ -74,6 +74,13 @@ def get_ingest_uc(
         dedup=PandasDeduplicator(),
         docs_path=Path(settings.docs_path),
     )
+
+
+@app.get("/")
+def serve_ui() -> FileResponse:
+    """Serve the self-contained mini UI for browser-based querying."""
+    html_path = Path(__file__).resolve().parent.parent / "static" / "index.html"
+    return FileResponse(html_path, media_type="text/html")
 
 
 @app.post("/api/ingest", response_model=IngestResponse)
