@@ -82,6 +82,7 @@ El workflow tiene un nodo **IF** llamado "LLM Provider" que rutea a OpenAI o Ant
 1. Abrí el nodo **LLM Provider** en el workflow
 2. Cambiá el valor hardcodeado a `openai` o `anthropic`
 3. Guardá el workflow
+4. **Desactivá el nodo del proveedor que NO vas a usar**: hacé click derecho sobre el nodo LLM que no elegiste (Anthropic u OpenAI) → **Deactivate**. Si no lo hacés, n8n detecta el nodo sin credencial y no te deja publicar el workflow.
 
 ### 7. Probar el asistente
 
