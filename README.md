@@ -18,8 +18,22 @@ cd Prueba-Tecnica-Juan-Ignacio-Cabral
 
 ### 2. Levantar el stack
 
+Primero, copiá `.env.example` a `.env` según tu OS:
+
 ```bash
+# macOS / Linux / Git Bash
 cp .env.example .env
+
+# Windows PowerShell
+Copy-Item .env.example .env
+
+# Windows cmd
+copy .env.example .env
+```
+
+> El `.env` es **opcional**: todas las variables tienen defaults razonables. Solo lo necesitás si querés ajustar `RAG_THRESHOLD` o `RAG_TOP_K`. No se configura ninguna API key aquí — esas van en n8n (paso 3).
+
+```bash
 docker compose up --build
 ```
 
@@ -28,27 +42,29 @@ n8n queda disponible en `http://localhost:5678`.
 
 ### 3. Configurar credenciales en n8n
 
-Las API keys del LLM se configuran directamente en n8n (no en `.env`):
+Las API keys del LLM se configuran directamente en la UI de n8n (no en `.env`):
 
 1. Abrí `http://localhost:5678`
-2. Ir a **Settings → Credentials → Add credential**
-3. Según el proveedor que uses:
-   - **OpenAI**: creá una credencial de tipo `OpenAI API` con tu `OPENAI_API_KEY`
-   - **Anthropic**: creá una credencial de tipo `Anthropic API` con tu `ANTHROPIC_API_KEY`
-4. Asignala al nodo correspondiente dentro del workflow
+2. En el Overview, andá a la pestaña **Credentials** (al lado de Workflows)
+3. Hacé click en **Create Credential** (botón naranja, arriba a la derecha)
+4. Seleccioná el proveedor:
+   - **OpenAI API** → Continue → pegá tu `OPENAI_API_KEY` → Base URL: `https://api.openai.com/v1` → **Save**
+   - **Anthropic API** → Continue → pegá tu `ANTHROPIC_API_KEY` → **Save**
+5. Repetí el proceso para el otro proveedor si lo vas a usar
 
 > El sistema fue probado con **Anthropic Claude Haiku**. El nodo OpenAI está configurado con `gpt-4o-mini` y el mismo system prompt, pero requiere que completes la credencial y verifiques el path de respuesta (`$json.message.content`) corriendo el nodo una vez.
 
 ### 4. Importar el workflow de n8n
 
-1. Ir a **Workflows → Import from file**
-2. Seleccioná `n8n_workflows/RAG Support Assistant.json`
-3. Abrí cada nodo que muestre error en rojo — al abrirlo el error desaparece (comportamiento normal de n8n al importar)
-4. Activá el workflow con el toggle superior derecho
+1. Pestaña **Workflows** → botón naranja **Create Workflow** (arriba a la derecha)
+2. En el canvas vacío, abrí el menú **⋮** (arriba a la derecha) → **Import from File**
+3. Seleccioná `n8n_workflows/RAG Support Assistant.json`
+4. Si aparecen nodos en rojo: hacé click en cada uno para abrirlo — el error desaparece al abrirlo (comportamiento normal de n8n al importar)
+5. Click derecho en el canvas → **Tidy up workflow** para ordenar los nodos
 
 ### 5. Seleccionar el proveedor LLM
 
-El workflow tiene un nodo Switch que rutea a OpenAI o Anthropic:
+El workflow tiene un nodo **IF** llamado "LLM Provider" que rutea a OpenAI o Anthropic:
 
 1. Abrí el nodo **LLM Provider** en el workflow
 2. Cambiá el valor hardcodeado a `openai` o `anthropic`
@@ -64,14 +80,21 @@ curl -X POST http://localhost:8000/api/ingest
 
 ### 7. Probar el asistente
 
-**Modo test** (sin activar el workflow, click en "Test workflow" en n8n):
+Hay dos modos de webhook — la diferencia importa:
+
+- **Test** (`/webhook-test/...`): n8n registra el listener por **una sola request** cuando apretás el botón **"Test workflow"** en la UI. Útil para debug puntual.
+- **Producción** (`/webhook/...`): el endpoint vive **de forma continua** SOLO mientras el workflow esté **Active** (toggle arriba a la derecha en el editor). El botón "Execute workflow" del centro **no** activa producción.
+
+> **Antes de flipar el toggle Active:** asegurate de haber completado el paso 3 (credenciales) y el paso 6 (ingestar docs). Si algún nodo no tiene credencial seteada, la activación falla silenciosamente y el webhook de producción no responde.
+
+**Modo test** (apretá "Test workflow" en n8n, luego enviá esta request):
 ```bash
 curl -X POST http://localhost:5678/webhook-test/rag-support \
   -H "Content-Type: application/json" \
   -d '{"query": "No puedo conectar a la base de datos"}'
 ```
 
-**Modo producción** (workflow activado):
+**Modo producción** (flipá el toggle "Active" en n8n, luego enviá):
 ```bash
 curl -X POST http://localhost:5678/webhook/rag-support \
   -H "Content-Type: application/json" \
