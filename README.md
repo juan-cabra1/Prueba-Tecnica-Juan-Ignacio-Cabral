@@ -83,7 +83,7 @@ El workflow tiene un nodo **IF** llamado "LLM Provider" que rutea a OpenAI o Ant
 Hay dos modos de webhook — la diferencia importa:
 
 - **Test** (`/webhook-test/...`): n8n registra el listener por **una sola request** cuando apretás el botón **"Test workflow"** en la UI. Útil para debug puntual.
-- **Producción** (`/webhook/...`): el endpoint vive **de forma continua** SOLO mientras el workflow esté **Active** (toggle arriba a la derecha en el editor). El botón "Execute workflow" del centro **no** activa producción.
+- **Producción** (`/webhook/...`): el endpoint vive **de forma continua** SOLO mientras el workflow esté **Active** (boton de "publish" y ahi queda en produccion). El botón "Execute workflow" del centro **no** activa producción.
 
 > **Antes de flipar el toggle Active:** asegurate de haber completado el paso 3 (ingestar docs) y el paso 4 (credenciales). Si algún nodo no tiene credencial seteada, la activación falla silenciosamente y el webhook de producción no responde.
 
@@ -94,7 +94,7 @@ curl -X POST http://localhost:5678/webhook-test/rag-support \
   -d '{"query": "No puedo conectar a la base de datos"}'
 ```
 
-**Modo producción** (flipá el toggle "Active" en n8n, luego enviá):
+**Modo producción** (hay que hacer publish del workflow n8n, luego enviá):
 ```bash
 curl -X POST http://localhost:5678/webhook/rag-support \
   -H "Content-Type: application/json" \
