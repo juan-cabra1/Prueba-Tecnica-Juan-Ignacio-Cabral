@@ -39,7 +39,8 @@ copy .env.example .env
 docker compose up --build
 ```
 
-> La primera vez que se buildea tarda ~5 minutos descargando dependencias (PyTorch, ChromaDB, etc.). Las siguientes veces son instantáneas gracias al cache de Docker.
+> La primera vez que se buildea tarda **10–15 minutos** descargando dependencias (PyTorch, ChromaDB, etc.). Las siguientes veces son instantáneas gracias al cache de Docker.
+> Una vez que los contenedores estén levantados, esperá unos segundos a que la API esté lista antes de continuar con el paso 3.
 
 La API queda disponible en `http://localhost:8000`.
 n8n queda disponible en `http://localhost:5678`.
@@ -50,7 +51,7 @@ n8n queda disponible en `http://localhost:5678`.
 curl -X POST http://localhost:8000/api/ingest
 ```
 
-> La primera vez tarda ~2 minutos por la descarga del modelo de embeddings. Mientras esperás, continuá con los pasos 4 y 5.
+> La primera vez tarda **3–5 minutos** por la descarga del modelo de embeddings. Mientras esperás, continuá con los pasos 4 y 5.
 
 ### 4. Configurar credenciales en n8n
 
