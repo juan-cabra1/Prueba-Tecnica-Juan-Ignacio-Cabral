@@ -7,6 +7,13 @@ Asistente RAG de soporte técnico para MineCatalog.
 - Docker y Docker Compose
 - Python 3.11+ (solo para tests locales)
 
+## Clonar el repositorio
+
+```bash
+git clone https://github.com/juan-cabra1/Prueba-Tecnica-Juan-Ignacio-Cabral.git
+cd Prueba-Tecnica-Juan-Ignacio-Cabral
+```
+
 ## Levantar el stack
 
 ```bash
