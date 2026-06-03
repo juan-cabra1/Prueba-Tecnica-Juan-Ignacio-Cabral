@@ -40,7 +40,15 @@ docker compose up --build
 La API queda disponible en `http://localhost:8000`.
 n8n queda disponible en `http://localhost:5678`.
 
-### 3. Configurar credenciales en n8n
+### 3. Ingestar la documentación
+
+```bash
+curl -X POST http://localhost:8000/api/ingest
+```
+
+> La primera vez tarda ~2 minutos por la descarga del modelo de embeddings. Mientras esperás, continuá con los pasos 4 y 5.
+
+### 4. Configurar credenciales en n8n
 
 Las API keys del LLM se configuran directamente en la UI de n8n (no en `.env`):
 
@@ -54,7 +62,7 @@ Las API keys del LLM se configuran directamente en la UI de n8n (no en `.env`):
 
 > El sistema fue probado con **Anthropic Claude Haiku**. El nodo OpenAI está configurado con `gpt-4o-mini` y el mismo system prompt, pero requiere que completes la credencial y verifiques el path de respuesta (`$json.message.content`) corriendo el nodo una vez.
 
-### 4. Importar el workflow de n8n
+### 5. Importar el workflow de n8n
 
 1. Pestaña **Workflows** → botón naranja **Create Workflow** (arriba a la derecha)
 2. En el canvas vacío, abrí el menú **⋮** (arriba a la derecha) → **Import from File**
@@ -62,21 +70,13 @@ Las API keys del LLM se configuran directamente en la UI de n8n (no en `.env`):
 4. Si aparecen nodos en rojo: hacé click en cada uno para abrirlo — el error desaparece al abrirlo (comportamiento normal de n8n al importar)
 5. Click derecho en el canvas → **Tidy up workflow** para ordenar los nodos
 
-### 5. Seleccionar el proveedor LLM
+### 6. Seleccionar el proveedor LLM
 
 El workflow tiene un nodo **IF** llamado "LLM Provider" que rutea a OpenAI o Anthropic:
 
 1. Abrí el nodo **LLM Provider** en el workflow
 2. Cambiá el valor hardcodeado a `openai` o `anthropic`
 3. Guardá el workflow
-
-### 6. Ingestar la documentación
-
-```bash
-curl -X POST http://localhost:8000/api/ingest
-```
-
-> La primera vez tarda ~2 minutos por la descarga del modelo de embeddings.
 
 ### 7. Probar el asistente
 
@@ -85,7 +85,7 @@ Hay dos modos de webhook — la diferencia importa:
 - **Test** (`/webhook-test/...`): n8n registra el listener por **una sola request** cuando apretás el botón **"Test workflow"** en la UI. Útil para debug puntual.
 - **Producción** (`/webhook/...`): el endpoint vive **de forma continua** SOLO mientras el workflow esté **Active** (toggle arriba a la derecha en el editor). El botón "Execute workflow" del centro **no** activa producción.
 
-> **Antes de flipar el toggle Active:** asegurate de haber completado el paso 3 (credenciales) y el paso 6 (ingestar docs). Si algún nodo no tiene credencial seteada, la activación falla silenciosamente y el webhook de producción no responde.
+> **Antes de flipar el toggle Active:** asegurate de haber completado el paso 3 (ingestar docs) y el paso 4 (credenciales). Si algún nodo no tiene credencial seteada, la activación falla silenciosamente y el webhook de producción no responde.
 
 **Modo test** (apretá "Test workflow" en n8n, luego enviá esta request):
 ```bash

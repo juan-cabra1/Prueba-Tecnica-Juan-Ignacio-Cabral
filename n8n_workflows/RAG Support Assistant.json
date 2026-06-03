@@ -360,9 +360,9 @@
       "parameters": {
         "modelId": {
           "__rl": true,
-          "value": "openrouter/free",
+          "value": "gpt-4o-mini",
           "mode": "list",
-          "cachedResultName": "OPENROUTER/FREE"
+          "cachedResultName": "GPT-4O-MINI"
         },
         "responses": {
           "values": [
