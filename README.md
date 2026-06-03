@@ -39,6 +39,8 @@ copy .env.example .env
 docker compose up --build
 ```
 
+> La primera vez que se buildea tarda ~5 minutos descargando dependencias (PyTorch, ChromaDB, etc.). Las siguientes veces son instantáneas gracias al cache de Docker.
+
 La API queda disponible en `http://localhost:8000`.
 n8n queda disponible en `http://localhost:5678`.
 
