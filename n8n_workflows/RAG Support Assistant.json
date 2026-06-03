@@ -1,0 +1,587 @@
+{
+  "name": "RAG Support Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rag-support",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d8902ba1-3e7a-49b5-8367-e1db9d00201e",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1104,
+        432
+      ],
+      "webhookId": "rag-support"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-empty",
+              "leftValue": "={{ !$json.body.query || $json.body.query.toString().trim() === '' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "0a3a2175-aad5-41e1-80cc-a4491002560d",
+      "name": "Empty Query?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/api/retrieve",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.body.query }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "b9fbc495-a9f4-4394-be18-ed3967701d8b",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -656,
+        144
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-found",
+              "leftValue": "={{ $json.found }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5e793efd-9976-41f3-ae33-44eaa5d851e0",
+      "name": "Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-anthropic",
+              "leftValue": "anthropic",
+              "rightValue": "openai",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c25b15e9-0d13-437e-a149-3dadaa7a6dd2",
+      "name": "LLM Provider",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-haiku-4-5-20251001"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=CONTEXTO RECUPERADO:\n{{ $('HTTP Request').item.json.results.map(r => r.context).join('\\n\\n---\\n\\n') }}\n\nPREGUNTA: {{ $('Webhook').item.json.body.query }}"
+            }
+          ]
+        },
+        "options": {
+          "system": "Sos el agente de soporte técnico de MineCatalog. Tu única fuente de verdad es el contexto que se te provee a continuación. REGLAS ESTRICTAS: 1. Respondé SOLO con información del contexto. Nunca inventes pasos, causas ni soluciones. 2. Si el contexto contiene el código de error (ej:ERR-DB-001), citalo explícitamente en tu respuesta. 3. Si la información para responder la pregunta NO está en el contexto, respondé única y exactamente esta frase, sin agregar nada más: \"No encontré información sobre eso en la documentación de MineCatalog.\" 4. Respondé en el mismo idioma en que está escrita la pregunta del usuario. 5. Usá texto plano. Sin markdown, sin asteriscos, sin #, sin guiones como decoración. La respuesta debe poder leerse en cualquier interfaz. 6. Estructura fija cuando el contexto lo permita: Código de error: [código si existe] Descripción: [qué es el error en una línea] Causas: [lista numerada] Pasos de resolución: [lista numerada] 7. INFORMACIÓN DE ESCALACIÓN: usala SOLO cuando indiques al usuario escalar o contactar soporte, o cuando el contexto incluya un \"Nivel de soporte\" (ahí aclará qué significa ese nivel). En respuestas normales NO la agregues. Nunca inventes datos de contacto. Datos: Correo de soporte:soporte.minecatalog@empresa.com. Horario: lunes a viernes, 08h00 a 17h00. Niveles: Nivel 1 es Soporte funcional, Nivel 2 es Soporte técnico, Nivel 3 es Administración de base de datos e infraestructura. Información recomendada al reportar un incidente: usuario afectado, fecha y hora del error, módulo donde ocurrió, captura de pantalla, código del material (si aplica), mensaje de error mostrado, y acción que se intentaba realizar."
+        }
+      },
+      "id": "81ce83e2-782b-43bd-83d9-7c02145f1e7a",
+      "name": "Anthropic",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        16,
+        48
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "7nQ6jtKyzzO3isrW",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "answer",
+              "stringValue": "={{ $json.content[0].text }}"
+            },
+            {
+              "name": "found",
+              "type": "booleanValue"
+            },
+            {
+              "name": "statusCode",
+              "type": "numberValue",
+              "numberValue": "200"
+            }
+          ]
+        },
+        "include": "none",
+        "options": {}
+      },
+      "id": "04e9cb22-1a77-4e88-9c93-3774102c82a9",
+      "name": "Set Found Anthropic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        368,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "answer",
+              "stringValue": "={{ $json.message.content }}"
+            },
+            {
+              "name": "found",
+              "type": "booleanValue"
+            },
+            {
+              "name": "statusCode",
+              "type": "numberValue",
+              "numberValue": "200"
+            }
+          ]
+        },
+        "include": "none",
+        "options": {}
+      },
+      "id": "ee14fcce-eb5c-4eb5-b7bb-27f987c78c68",
+      "name": "Set Found OpenAI",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        368,
+        432
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "answer",
+              "stringValue": "No encontre eso en la documentacion de MineCatalog."
+            },
+            {
+              "name": "found",
+              "type": "booleanValue",
+              "booleanValue": "false"
+            },
+            {
+              "name": "statusCode",
+              "type": "numberValue",
+              "numberValue": "404"
+            }
+          ]
+        },
+        "include": "none",
+        "options": {}
+      },
+      "id": "8d561221-dc5f-47bc-a2bf-da7bcd78eff0",
+      "name": "Set Not Found",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        368,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "answer",
+              "stringValue": "Query vacía. Por favor ingresá tu consulta para poder ayudarte."
+            },
+            {
+              "name": "found",
+              "type": "booleanValue",
+              "booleanValue": "false"
+            },
+            {
+              "name": "statusCode",
+              "type": "numberValue",
+              "numberValue": "400"
+            }
+          ]
+        },
+        "include": "none",
+        "options": {}
+      },
+      "id": "656951b7-7e16-46cb-bb52-b7f3bd9a41ff",
+      "name": "Set Empty",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        368,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "answer",
+              "stringValue": "Lo siento, ocurrió un error procesando tu consulta. Por favor intenta de nuevo."
+            },
+            {
+              "name": "found",
+              "type": "booleanValue",
+              "booleanValue": "false"
+            },
+            {
+              "name": "statusCode",
+              "type": "numberValue",
+              "numberValue": "502"
+            },
+            {
+              "name": "error",
+              "type": "booleanValue"
+            }
+          ]
+        },
+        "include": "none",
+        "options": {}
+      },
+      "id": "1677d3bf-3d03-47fb-b56b-9ad1e91d089c",
+      "name": "Set Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        368,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "12918f71-aa16-4671-a5a3-f1f8d4f247f8",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        592,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "openrouter/free",
+          "mode": "list",
+          "cachedResultName": "OPENROUTER/FREE"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=Sos el agente de soporte técnico de MineCatalog. Tu única fuente de verdad es el contexto que se te provee a continuación. REGLAS ESTRICTAS: 1. Respondé SOLO con información del contexto. Nunca inventes pasos, causas ni soluciones. 2. Si el contexto contiene el código de error (ej:ERR-DB-001), citalo explícitamente en tu respuesta. 3. Si la información para responder la pregunta NO está en el contexto, respondé única y exactamente esta frase, sin agregar nada más: \"No encontré información sobre eso en la documentación de MineCatalog.\" 4. Respondé en el mismo idioma en que está escrita la pregunta del usuario. 5. Usá texto plano. Sin markdown, sin asteriscos, sin #, sin guiones como decoración. La respuesta debe poder leerse en cualquier interfaz. 6. Estructura fija cuando el contexto lo permita: Código de error: [código si existe] Descripción: [qué es el error en una línea] Causas: [lista numerada] Pasos de resolución: [lista numerada] 7. INFORMACIÓN DE ESCALACIÓN: usala SOLO cuando indiques al usuario escalar o contactar soporte, o cuando el contexto incluya un \"Nivel de soporte\" (ahí aclará qué significa ese nivel). En respuestas normales NO la agregues. Nunca inventes datos de contacto. Datos: Correo de soporte:soporte.minecatalog@empresa.com. Horario: lunes a viernes, 08h00 a 17h00. Niveles: Nivel 1 es Soporte funcional, Nivel 2 es Soporte técnico, Nivel 3 es Administración de base de datos e infraestructura. Información recomendada al reportar un incidente: usuario afectado, fecha y hora del error, módulo donde ocurrió, captura de pantalla, código del material (si aplica), mensaje de error mostrado, y acción que se intentaba realizar."
+            },
+            {
+              "content": "=CONTEXTO RECUPERADO: {{ $('HTTP Request').item.json.results.map(r => r.context).join('\\n\\n---\\n\\n') }}\n\nPREGUNTA: {{ $('Webhook').item.json.body.query }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        16,
+        384
+      ],
+      "id": "cafbeb87-4048-4f92-851f-eb1d2236d00f",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "fwWDWWC0sGhy7eLs",
+          "name": "OpenAI account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Empty Query?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty Query?": {
+      "main": [
+        [
+          {
+            "node": "Set Empty",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Found?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Found?": {
+      "main": [
+        [
+          {
+            "node": "LLM Provider",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Provider": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Anthropic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic": {
+      "main": [
+        [
+          {
+            "node": "Set Found Anthropic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Found Anthropic": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Found OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Not Found": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Empty": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Error": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Set Found OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f8081167-79f0-49f1-a986-6b226d6b7ef6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cf18e787b36e93b9e7b8f06c044eecbca5561bd6e0d2f75fa820194ffaa2c089"
+  },
+  "id": "pKl79OzMfzRdj68Z",
+  "tags": []
+}

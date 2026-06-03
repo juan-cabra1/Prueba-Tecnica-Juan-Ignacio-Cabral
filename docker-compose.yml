@@ -22,6 +22,7 @@ services:
       - n8n_data:/home/node/.n8n
     environment:
       - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
     env_file:
       - .env
     depends_on:
