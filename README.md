@@ -2,6 +2,8 @@
 
 Asistente RAG de soporte técnico para MineCatalog.
 
+> Decisiones de arquitectura y tradeoffs → [`ARQUITECTURA.md`](ARQUITECTURA.md)
+
 ## Requisitos
 
 - Docker y Docker Compose
@@ -107,6 +109,17 @@ curl -X POST http://localhost:8000/api/retrieve \
   -H "Content-Type: application/json" \
   -d '{"query": "No puedo conectar a la base de datos"}'
 ```
+
+## Mini UI (sin Postman)
+
+Con el stack levantado y el workflow de n8n **Active** (paso 7), abrí `http://localhost:8000/` en el browser.
+
+Escribí tu consulta y hacé click en **Enviar**. La UI muestra:
+- La respuesta generada por el LLM (`answer`)
+- Si se encontró información relevante (`found`)
+- El código de estado lógico (`statusCode`) y el JSON crudo completo
+
+> **Prerequisito**: el workflow de n8n debe estar **Active** con credenciales cargadas (igual que el modo producción del paso 7). La UI pega directamente al webhook de producción.
 
 ## Variables de entorno
 
