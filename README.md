@@ -7,14 +7,16 @@ Asistente RAG de soporte técnico para MineCatalog.
 - Docker y Docker Compose
 - Python 3.11+ (solo para tests locales)
 
-## Clonar el repositorio
+## Setup paso a paso
+
+### 1. Clonar el repositorio
 
 ```bash
 git clone https://github.com/juan-cabra1/Prueba-Tecnica-Juan-Ignacio-Cabral.git
 cd Prueba-Tecnica-Juan-Ignacio-Cabral
 ```
 
-## Levantar el stack
+### 2. Levantar el stack
 
 ```bash
 cp .env.example .env
@@ -24,7 +26,7 @@ docker compose up --build
 La API queda disponible en `http://localhost:8000`.
 n8n queda disponible en `http://localhost:5678`.
 
-## Configurar credenciales en n8n
+### 3. Configurar credenciales en n8n
 
 Las API keys del LLM se configuran directamente en n8n (no en `.env`):
 
@@ -35,35 +37,34 @@ Las API keys del LLM se configuran directamente en n8n (no en `.env`):
    - **Anthropic**: creá una credencial de tipo `Anthropic API` con tu `ANTHROPIC_API_KEY`
 4. Asignala al nodo correspondiente dentro del workflow
 
-El sistema fue probado con **Anthropic Claude Haiku**. El nodo OpenAI está configurado con `gpt-4o-mini` y el mismo system prompt, pero requiere que completes la credencial y verifiques el path de respuesta (`$json.message.content`) corriendo el nodo una vez.
+> El sistema fue probado con **Anthropic Claude Haiku**. El nodo OpenAI está configurado con `gpt-4o-mini` y el mismo system prompt, pero requiere que completes la credencial y verifiques el path de respuesta (`$json.message.content`) corriendo el nodo una vez.
 
-## Importar el workflow de n8n
+### 4. Importar el workflow de n8n
 
-1. Abrí `http://localhost:5678`
-2. Ir a **Workflows → Import from file**
-3. Seleccioná `n8n_workflows/RAG Support Assistant.json`
-4. Abrí cada nodo que muestre error en rojo — al abrirlo el error desaparece (comportamiento normal de n8n al importar)
-5. Activá el workflow con el toggle superior derecho
+1. Ir a **Workflows → Import from file**
+2. Seleccioná `n8n_workflows/RAG Support Assistant.json`
+3. Abrí cada nodo que muestre error en rojo — al abrirlo el error desaparece (comportamiento normal de n8n al importar)
+4. Activá el workflow con el toggle superior derecho
 
-## Cambiar el proveedor LLM
+### 5. Seleccionar el proveedor LLM
 
-El workflow tiene un nodo Switch que rutea a OpenAI o Anthropic. Para cambiar el proveedor:
+El workflow tiene un nodo Switch que rutea a OpenAI o Anthropic:
 
 1. Abrí el nodo **LLM Provider** en el workflow
 2. Cambiá el valor hardcodeado a `openai` o `anthropic`
 3. Guardá el workflow
 
-## Ingestar la documentación
+### 6. Ingestar la documentación
 
 ```bash
 curl -X POST http://localhost:8000/api/ingest
 ```
 
-La primera vez tarda ~2 minutos por la descarga del modelo de embeddings.
+> La primera vez tarda ~2 minutos por la descarga del modelo de embeddings.
 
-## Probar el asistente
+### 7. Probar el asistente
 
-**Modo test** (sin activar el workflow, usar "Test workflow" en n8n):
+**Modo test** (sin activar el workflow, click en "Test workflow" en n8n):
 ```bash
 curl -X POST http://localhost:5678/webhook-test/rag-support \
   -H "Content-Type: application/json" \
