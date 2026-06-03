@@ -131,7 +131,7 @@ Estas variables se configuran en `.env` y afectan al servicio FastAPI:
 
 | Variable | Default | Descripción |
 |---|---|---|
-| `RAG_THRESHOLD` | `0.88` | Umbral de similitud coseno para abstención |
+| `RAG_THRESHOLD` | `0.85` | Umbral de similitud coseno para abstención |
 | `RAG_TOP_K` | `3` | Top-K resultados a recuperar |
 
 ## HTTP status codes del webhook

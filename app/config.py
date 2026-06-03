@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     collection_name: str = "soporte_registros"
     model_name: str = "intfloat/multilingual-e5-small"
     top_k: int = 3
-    threshold: float = 0.88
+    threshold: float = 0.85
 
     model_config = {"env_prefix": "RAG_", "env_file": ".env", "extra": "ignore"}
 

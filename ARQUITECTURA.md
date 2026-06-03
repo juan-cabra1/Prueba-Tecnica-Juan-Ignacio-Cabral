@@ -118,13 +118,13 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 
 ---
 
-### 7. Lógica de abstención en FastAPI (threshold 0.88), no en n8n ni en el prompt
+### 7. Lógica de abstención en FastAPI (threshold 0.85), no en n8n ni en el prompt
 
 | Campo | Detalle |
 |-------|---------|
-| **Decisión** | Si el score del top-1 resultado es menor que 0.88, FastAPI retorna `found: false` sin enviar contexto al LLM |
+| **Decisión** | Si el score del top-1 resultado es menor que 0.85, FastAPI retorna `found: false` sin enviar contexto al LLM |
 | **Alternativa** | Delegar la decisión de abstención al prompt del LLM ("si no tenés información, decí que no sabés") o a n8n mediante un nodo IF sobre la respuesta del LLM |
-| **Rationale** | La abstención vía prompt es inestable: el LLM puede ignorar la instrucción e inventar una respuesta plausible. La abstención vía score es determinista, testeable con pytest y calibrable con el harness de evaluación. Vive donde se puede medir. El threshold 0.88 fue seleccionado empíricamente sobre el corpus; es configurable vía `RAG_THRESHOLD`. Nota: los embeddings e5 comprimen los scores en una banda estrecha por anisotropía del coseno — lo que importa es la separación relativa entre scores, no el valor absoluto. |
+| **Rationale** | La abstención vía prompt es inestable: el LLM puede ignorar la instrucción e inventar una respuesta plausible. La abstención vía score es determinista, testeable con pytest y calibrable con el harness de evaluación. Vive donde se puede medir. El threshold 0.85 fue seleccionado empíricamente sobre el corpus; es configurable vía `RAG_THRESHOLD`. Nota: los embeddings e5 comprimen los scores en una banda estrecha por anisotropía del coseno — lo que importa es la separación relativa entre scores, no el valor absoluto. |
 
 ---
 
@@ -134,7 +134,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | El threshold se calibra empíricamente sobre el corpus real, no se establece a 0.5 o 0.7 por convención |
 | **Alternativa** | Usar un umbral arbitrario "intuitivo" (ej. 0.7 = "70% de similitud") |
-| **Rationale** | Los modelos de embedding no producen scores distribuidos uniformemente en [0, 1]. E5 y modelos similares sufren anisotropía: los embeddings se concentran en un cono del espacio vectorial y los scores coseno se comprimen en una banda estrecha (ej. 0.75–0.95). Un score de 0.80 puede ser "no relevante" y 0.88 puede ser "muy relevante" para el mismo corpus. La única forma de calibrar el threshold correctamente es medir separación relativa sobre ejemplos reales. |
+| **Rationale** | Los modelos de embedding no producen scores distribuidos uniformemente en [0, 1]. E5 y modelos similares sufren anisotropía: los embeddings se concentran en un cono del espacio vectorial y los scores coseno se comprimen en una banda estrecha (ej. 0.75–0.95). Un score de 0.80 puede ser "no relevante" y 0.85 puede ser "muy relevante" para el mismo corpus. La única forma de calibrar el threshold correctamente es medir separación relativa sobre ejemplos reales. |
 
 ---
 

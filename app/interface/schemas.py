@@ -19,9 +19,12 @@ class RetrieveRequest(BaseModel):
     @field_validator("query")
     @classmethod
     def query_not_empty(cls, v: str) -> str:
-        if not v or not v.strip():
+        stripped = v.strip() if v else ""
+        if not stripped:
             raise ValueError("query must not be empty")
-        return v.strip()
+        if not any(c.isalnum() for c in stripped):
+            raise ValueError("query must contain at least one letter or digit")
+        return stripped
 
 
 class ResultItem(BaseModel):
