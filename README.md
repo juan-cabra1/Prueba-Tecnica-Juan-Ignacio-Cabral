@@ -86,12 +86,18 @@ El workflow tiene un nodo **IF** llamado "LLM Provider" que rutea a OpenAI o Ant
 
 ### 7. Probar el asistente
 
-Hay dos modos de webhook — la diferencia importa:
+> **Antes de probar:** asegurate de haber completado el paso 3 (ingestar docs) y el paso 4 (credenciales). Para activar el modo producción: hacé click en el botón **Publish** (arriba a la derecha en n8n), escribí un nombre y confirmá con el botón naranja. Si algún nodo no tiene credencial seteada, la publicación falla silenciosamente y el webhook de producción no responde.
+
+#### Mini UI (recomendado)
+
+Con el workflow publicado, abrí `http://localhost:8000/` en el browser. Escribí tu consulta y hacé click en **Enviar**. La UI muestra la respuesta del LLM, el estado `found`, el `statusCode` lógico y el JSON crudo completo.
+
+#### Via curl / Postman
+
+Hay dos modos de webhook:
 
 - **Test** (`/webhook-test/...`): n8n registra el listener por **una sola request** cuando apretás el botón **"Test workflow"** en la UI. Útil para debug puntual.
-- **Producción** (`/webhook/...`): el endpoint vive **de forma continua** una vez que publicás el workflow. Para publicarlo: hacé click en el botón **Publish** (arriba a la derecha), escribí un nombre y confirmá con el botón naranja. El botón "Execute workflow" del centro **no** activa producción.
-
-> **Antes de publicar:** asegurate de haber completado el paso 3 (ingestar docs) y el paso 4 (credenciales). Si algún nodo no tiene credencial seteada, la publicación falla silenciosamente y el webhook de producción no responde.
+- **Producción** (`/webhook/...`): el endpoint vive de forma continua una vez publicado el workflow.
 
 **Modo test** (apretá "Test workflow" en n8n, luego enviá esta request):
 ```bash
@@ -100,7 +106,7 @@ curl -X POST http://localhost:5678/webhook-test/rag-support \
   -d '{"query": "No puedo conectar a la base de datos"}'
 ```
 
-**Modo producción** (hay que hacer publish del workflow n8n, luego enviá):
+**Modo producción** (publicá el workflow n8n, luego enviá):
 ```bash
 curl -X POST http://localhost:5678/webhook/rag-support \
   -H "Content-Type: application/json" \
@@ -113,17 +119,6 @@ curl -X POST http://localhost:8000/api/retrieve \
   -H "Content-Type: application/json" \
   -d '{"query": "No puedo conectar a la base de datos"}'
 ```
-
-## Mini UI (sin Postman)
-
-Con el stack levantado y el workflow de n8n **Active** (paso 7), abrí `http://localhost:8000/` en el browser.
-
-Escribí tu consulta y hacé click en **Enviar**. La UI muestra:
-- La respuesta generada por el LLM (`answer`)
-- Si se encontró información relevante (`found`)
-- El código de estado lógico (`statusCode`) y el JSON crudo completo
-
-> **Prerequisito**: el workflow de n8n debe estar **Active** con credenciales cargadas (igual que el modo producción del paso 7). La UI pega directamente al webhook de producción.
 
 ## Variables de entorno
 
