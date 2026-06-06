@@ -92,7 +92,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 
 | Campo | Detalle |
 |-------|---------|
-| **Decisión** | ChromaDB con `hnsw:space=cosine` y embeddings normalizados (L2 norm = 1) |
+| **Decisión** | ChromaDB con `hnsw:space=cosine` y embeddings normalizados |
 | **Alternativa** | FAISS (producto punto), Qdrant, Pinecone, etc. |
 | **Rationale** | ChromaDB es persistente por defecto, no requiere infraestructura adicional y se integra directamente en el proceso Python. La similitud coseno es la métrica estándar para embeddings semánticos. La normalización previa (incluida en `sentence-transformers` con `normalize_embeddings=True`) hace que producto punto y coseno sean equivalentes, asegurando comparabilidad entre query embeddings y document embeddings. |
 
@@ -178,12 +178,12 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 
 ---
 
-### 13. No hybrid search ni reranking: corpus no lo justifica aún
+### 13. No hybrid search: corpus no lo justifica aún
 
 | Campo | Detalle |
 |-------|---------|
-| **Decisión** | El retrieval usa solo búsqueda densa (embeddings), sin BM25 ni reranking |
-| **Alternativa** | Hybrid search (denso + BM25), cross-encoder reranking |
+| **Decisión** | El retrieval usa solo búsqueda densa (embeddings), sin BM25|
+| **Alternativa** | Hybrid search (denso + BM25) |
 | **Rationale** | El corpus actual es pequeño y estructurado. El harness de evaluación no mostró evidencia de que el retrieval denso falle sistemáticamente en matches de término exacto para el volumen actual. Implementar hybrid search agrega dependencias (BM25, índice invertido) y complejidad de fusión de scores. El criterio es: medir primero, optimizar después. El harness está diseñado precisamente para detectar cuándo el baseline no separa. |
 
 ---
