@@ -64,7 +64,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | Usar `intfloat/multilingual-e5-small` ejecutado localmente vía `sentence-transformers` |
 | **Alternativa** | `text-embedding-ada-002` u otro modelo de OpenAI vía API |
-| **Rationale** | Cero costo por llamada, sin latencia de red, sin dependencia de API key para la capa ML. El corpus es pequeño y está en español; el modelo e5 multilingüe cubre el dominio. La calidad observada en el harness de evaluación fue suficiente para el baseline. |
+| **Razón** | Cero costo por llamada, sin latencia de red, sin dependencia de API key para la capa ML. El corpus es pequeño y está en español; el modelo e5 multilingüe cubre el dominio. La calidad observada en el harness de evaluación fue suficiente para el baseline. |
 
 ---
 
@@ -74,7 +74,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | Elegir un modelo e5 (asimetría query/passage) en lugar de modelos simétricos como MiniLM |
 | **Alternativa** | `paraphrase-MiniLM-L6-v2` u otros modelos simétricos |
-| **Rationale** | Los modelos e5 están diseñados para búsqueda asimétrica: una query corta del usuario se compara contra pasajes más largos de documentación. MiniLM y modelos simétricos optimizan para similitud entre textos del mismo tipo y longitud, lo que degrada el retrieval en escenarios query-vs-documento. La distinción semántica de prefijos (`query:` vs `passage:`) es el mecanismo que lo hace posible. |
+| **Razón** | Los modelos e5 están diseñados para búsqueda asimétrica: una query corta del usuario se compara contra pasajes más largos de documentación. MiniLM y modelos simétricos optimizan para similitud entre textos del mismo tipo y longitud, lo que degrada el retrieval en escenarios query-vs-documento. La distinción semántica de prefijos (`query:` vs `passage:`) es el mecanismo que lo hace posible. |
 
 ---
 
@@ -84,7 +84,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | El prefijo `"query: "` y `"passage: "` se agregan dentro de `E5Embedder`, no en el caller |
 | **Alternativa** | Que cada caso de uso o parser agregue el prefijo manualmente antes de llamar al embedder |
-| **Rationale** | Si el prefijo es responsabilidad del caller, cualquier punto de entrada nuevo puede olvidarlo y producir embeddings incompatibles con el índice, degradando el retrieval sin error visible. Al encapsular el prefijo en el embedder, la invariante se mantiene por construcción: es imposible obtener un embedding sin el prefijo correcto. |
+| **Razón** | Si el prefijo es responsabilidad del caller, cualquier punto de entrada nuevo puede olvidarlo y producir embeddings incompatibles con el índice, degradando el retrieval sin error visible. Al encapsular el prefijo en el embedder, la invariante se mantiene por construcción: es imposible obtener un embedding sin el prefijo correcto. |
 
 ---
 
@@ -94,7 +94,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | ChromaDB con `hnsw:space=cosine` y embeddings normalizados |
 | **Alternativa** | FAISS (producto punto), Qdrant, Pinecone, etc. |
-| **Rationale** | ChromaDB es persistente por defecto, no requiere infraestructura adicional y se integra directamente en el proceso Python. La similitud coseno es la métrica estándar para embeddings semánticos. La normalización previa (incluida en `sentence-transformers` con `normalize_embeddings=True`) hace que producto punto y coseno sean equivalentes, asegurando comparabilidad entre query embeddings y document embeddings. |
+| **Razón** | ChromaDB es persistente por defecto, no requiere infraestructura adicional y se integra directamente en el proceso Python. La similitud coseno es la métrica estándar para embeddings semánticos. La normalización previa (incluida en `sentence-transformers` con `normalize_embeddings=True`) hace que producto punto y coseno sean equivalentes, asegurando comparabilidad entre query embeddings y document embeddings. |
 
 ---
 
@@ -104,7 +104,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | Cada registro de error (con código, título, causas y solución) es un chunk indivisible |
 | **Alternativa** | Chunking por caracteres o ventana deslizante (estrategia común en RAG genérico) |
-| **Rationale** | El corpus es documentación técnica estructurada. Cortar un registro a mitad de la lista de causas destruye la coherencia semántica del chunk y degrada el retrieval. Un registro completo es la unidad de información mínima coherente. El chunking por caracteres tiene sentido para documentos de prosa continua, no para registros estructurados. |
+| **Razón** | El corpus es documentación técnica estructurada. Cortar un registro a mitad de la lista de causas destruye la coherencia semántica del chunk y degrada el retrieval. Un registro completo es la unidad de información mínima coherente. El chunking por caracteres tiene sentido para documentos de prosa continua, no para registros estructurados. |
 
 ---
 
@@ -114,7 +114,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | Normalizar todas las fuentes a la entidad `Registro` antes de indexar; deduplicar por código o hash de contenido usando Pandas |
 | **Alternativa** | Indexar directamente desde cada parser sin normalizar; detectar duplicados en el vector store |
-| **Rationale** | La deduplicación en el vector store (por similitud) es costosa y aproximada. Detectarla antes de indexar, sobre datos normalizados, es exacta y barata. El esquema canónico desacopla los parsers del vector store: agregar un nuevo formato (XML, CSV) solo requiere implementar el parser sin tocar la lógica de almacenamiento. |
+| **Razón** | La deduplicación en el vector store (por similitud) es costosa y aproximada. Detectarla antes de indexar, sobre datos normalizados, es exacta y barata. El esquema canónico desacopla los parsers del vector store: agregar un nuevo formato (XML, CSV) solo requiere implementar el parser sin tocar la lógica de almacenamiento. |
 
 ---
 
@@ -124,7 +124,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | Si el score del top-1 resultado es menor que 0.85, FastAPI retorna `found: false` sin enviar contexto al LLM |
 | **Alternativa** | Delegar la decisión de abstención al prompt del LLM ("si no tenés información, decí que no sabés") o a n8n mediante un nodo IF sobre la respuesta del LLM |
-| **Rationale** | La abstención vía prompt es inestable: el LLM puede ignorar la instrucción e inventar una respuesta plausible. La abstención vía score es determinista, testeable con pytest y calibrable con el harness de evaluación. Vive donde se puede medir. El threshold 0.85 fue seleccionado empíricamente sobre el corpus; es configurable vía `RAG_THRESHOLD`. Nota: los embeddings e5 comprimen los scores en una banda estrecha por anisotropía del coseno — lo que importa es la separación relativa entre scores, no el valor absoluto. |
+| **Razón** | La abstención vía prompt es inestable: el LLM puede ignorar la instrucción e inventar una respuesta plausible. La abstención vía score es determinista, testeable con pytest y calibrable con el harness de evaluación. Vive donde se puede medir. El threshold 0.85 fue seleccionado empíricamente sobre el corpus; es configurable vía `RAG_THRESHOLD`. Nota: los embeddings e5 comprimen los scores en una banda estrecha por anisotropía del coseno — lo que importa es la separación relativa entre scores, no el valor absoluto. |
 
 ---
 
@@ -134,7 +134,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | El threshold se calibra empíricamente sobre el corpus real, no se establece a 0.5 o 0.7 por convención |
 | **Alternativa** | Usar un umbral arbitrario "intuitivo" (ej. 0.7 = "70% de similitud") |
-| **Rationale** | Los modelos de embedding no producen scores distribuidos uniformemente en [0, 1]. E5 y modelos similares sufren anisotropía: los embeddings se concentran en un cono del espacio vectorial y los scores coseno se comprimen en una banda estrecha (ej. 0.75–0.95). Un score de 0.80 puede ser "no relevante" y 0.85 puede ser "muy relevante" para el mismo corpus. La única forma de calibrar el threshold correctamente es medir separación relativa sobre ejemplos reales. |
+| **Razón** | Los modelos de embedding no producen scores distribuidos uniformemente en [0, 1]. E5 y modelos similares sufren anisotropía: los embeddings se concentran en un cono del espacio vectorial y los scores coseno se comprimen en una banda estrecha (ej. 0.75–0.95). Un score de 0.80 puede ser "no relevante" y 0.85 puede ser "muy relevante" para el mismo corpus. La única forma de calibrar el threshold correctamente es medir separación relativa sobre ejemplos reales. |
 
 ---
 
@@ -144,7 +144,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | n8n devuelve status codes REST semánticos: 200 (encontrado), 404 (abstención), 400 (query vacía), 502 (error LLM), 504 (timeout) |
 | **Alternativa** | Devolver siempre HTTP 200 con un campo `status` en el body (patrón "always-200") |
-| **Rationale** | Los status codes REST existen para que clientes e infraestructura (load balancers, monitores, alertas) puedan reaccionar sin parsear el body. El patrón always-200 es un antipatrón que rompe la semántica HTTP y complica el monitoreo. El costo de implementarlo correctamente en n8n es bajo. |
+| **Razón** | Los status codes REST existen para que clientes e infraestructura (load balancers, monitores, alertas) puedan reaccionar sin parsear el body. El patrón always-200 es un antipatrón que rompe la semántica HTTP y complica el monitoreo. El costo de implementarlo correctamente en n8n es bajo. |
 
 ---
 
@@ -154,7 +154,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | El workflow n8n tiene un nodo IF que rutea a OpenAI o Anthropic según una variable configurable |
 | **Alternativa** | Hardcodear un único proveedor LLM |
-| **Rationale** | Diferentes entornos o equipos pueden tener acceso a distintos proveedores. La configuración vía variable (sin redeployment) reduce la fricción de adopción. OpenAI gpt-4o-mini es el default por estar especificado en el brief; Anthropic Haiku es el opt-in validado durante el desarrollo. |
+| **Razón** | Diferentes entornos o equipos pueden tener acceso a distintos proveedores. La configuración vía variable (sin redeployment) reduce la fricción de adopción. OpenAI gpt-4o-mini es el default por estar especificado en el brief; Anthropic Haiku es el opt-in validado durante el desarrollo. |
 
 ---
 
@@ -164,7 +164,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | Las API keys del LLM (OpenAI, Anthropic) se configuran exclusivamente en la UI de n8n, no en `.env` ni en el código Python |
 | **Alternativa** | Centralizar todas las configuraciones en `.env` y pasarlas al contenedor FastAPI |
-| **Rationale** | FastAPI es la capa ML: no necesita keys LLM para embeddings ni retrieval. Concentrar credenciales en n8n reduce la superficie de exposición y aprovecha el vault de credenciales nativo de n8n, que almacena los valores cifrados. El `.env` solo contiene parámetros de tuning del retrieval (threshold, top_k). |
+| **Razón** | FastAPI es la capa ML: no necesita keys LLM para embeddings ni retrieval. Concentrar credenciales en n8n reduce la superficie de exposición y aprovecha el vault de credenciales nativo de n8n, que almacena los valores cifrados. El `.env` solo contiene parámetros de tuning del retrieval (threshold, top_k). |
 
 ---
 
@@ -174,7 +174,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | Interfaces (Protocols) solo para `Embedder` y `VectorStore`; parsers son clases concretas sin Protocol compartido en producción |
 | **Alternativa** | Definir Protocols para cada componente, incluyendo parsers, deduplicadores y casos de uso |
-| **Rationale** | Una abstracción se justifica cuando hay más de una implementación real o cuando facilita el testing. `Embedder` tiene la implementación E5 (producción) y un fake en tests. `VectorStore` tiene ChromaDB (producción) y un fake en tests. Los parsers, en cambio, se seleccionan por extensión de archivo en tiempo de construcción del use case — no se intercambian en runtime. Abstraer todo agrega complejidad sin beneficio medible. |
+| **Razón** | Una abstracción se justifica cuando hay más de una implementación real o cuando facilita el testing. `Embedder` tiene la implementación E5 (producción) y un fake en tests. `VectorStore` tiene ChromaDB (producción) y un fake en tests. Los parsers, en cambio, se seleccionan por extensión de archivo en tiempo de construcción del use case — no se intercambian en runtime. Abstraer todo agrega complejidad sin beneficio medible. |
 
 ---
 
@@ -184,7 +184,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
 |-------|---------|
 | **Decisión** | El retrieval usa solo búsqueda densa (embeddings), sin BM25|
 | **Alternativa** | Hybrid search (denso + BM25) |
-| **Rationale** | El corpus actual es pequeño y estructurado. El harness de evaluación no mostró evidencia de que el retrieval denso falle sistemáticamente en matches de término exacto para el volumen actual. Implementar hybrid search agrega dependencias (BM25, índice invertido) y complejidad de fusión de scores. El criterio es: medir primero, optimizar después. El harness está diseñado precisamente para detectar cuándo el baseline no separa. |
+| **Razón** | El corpus actual es pequeño y estructurado. El harness de evaluación no mostró evidencia de que el retrieval denso falle sistemáticamente en matches de término exacto para el volumen actual. Implementar hybrid search agrega dependencias (BM25, índice invertido) y complejidad de fusión de scores. El criterio es: medir primero, optimizar después. El harness está diseñado precisamente para detectar cuándo el baseline no separa. |
 
 ---
 
