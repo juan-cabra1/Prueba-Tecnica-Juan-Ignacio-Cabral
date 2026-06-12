@@ -209,7 +209,7 @@ y permite testear el retrieval de forma aislada, sin dependencias externas de AP
    de evaluación detecta que queries con códigos exactos no alcanzan el threshold.
 
 2. **Cross-encoder reranking**: después de recuperar los top-K candidatos por embeddings,
-   aplicar un cross-encoder (ej. `cross-encoder/ms-marco-MiniLM-L-6-v2`) para reordenar
+   aplicar un cross-encoder para reordenar
    por relevancia real antes de pasar el contexto al LLM. Activar si la precisión del top-1
    cae por debajo del objetivo en el harness.
 
